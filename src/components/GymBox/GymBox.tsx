@@ -3,6 +3,7 @@ import { Button, Popconfirm, Modal, Input, List, notification, Spin } from "antd
 import { EditOutlined, DeleteOutlined, MessageOutlined } from '@ant-design/icons';
 import { io, Socket } from "socket.io-client";
 import { askPricingSuggestion } from "../../api/chat-ai";
+import ChatAILogo from "../../assets/Logo/chatAI.png";
 import './GymBox.less';
 
 interface GymBoxProps {
@@ -12,6 +13,7 @@ interface GymBoxProps {
   prices: number[];
   onEdit: () => void;
   onDelete: () => void;
+  onUpdatePrice: () => void;
 }
 
 const CHAT_SERVER_URL = "http://localhost:3002";
@@ -29,6 +31,7 @@ const GymBox: React.FC<GymBoxProps> = ({
   prices,
   onEdit,
   onDelete,
+  onUpdatePrice,
 }) => {
   const [gymName, setGymName] = useState(initialGymName);
   const [isChatModalVisible, setChatModalVisible] = useState(false);
@@ -171,12 +174,46 @@ const GymBox: React.FC<GymBoxProps> = ({
         </div>
       </div>
       <p>{city}</p>
-      <Button type="primary" className="gym-box-button" icon={<MessageOutlined />} onClick={openChatModal}>
+      <p
+        onClick={openChatModal}
+        style={{
+          color: "#6c7080",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+          margin: "6px 0",
+          fontSize: "14px",
+        }}
+      >
+        <MessageOutlined />
         Chat with Users
-      </Button>
-      <Button onClick={openSuggestModal} style={{ marginTop: 8 }} block>
+      </p>
+      <p
+        onClick={openSuggestModal}
+        style={{
+          color: "#6c7080",
+          cursor: "pointer",
+          margin: "6px 0",
+          fontSize: "14px",
+          fontWeight: 400,
+        }}
+      >
         Suggest Pricing Using AI
-      </Button>
+      </p>
+      <p
+        onClick={onUpdatePrice}
+        style={{
+          color: "#6c7080",
+          cursor: "pointer",
+          margin: "6px 0",
+          fontSize: "14px",
+          fontWeight: 400,
+        }}
+      >
+        Update Price
+      </p>
+
       <Modal
         title={selectedUser ? `Chat with ${selectedUser.firstName} ${selectedUser.lastName}` : "Chat with Users"}
         open={isChatModalVisible}
@@ -229,14 +266,38 @@ const GymBox: React.FC<GymBoxProps> = ({
         onCancel={() => setSuggestModalVisible(false)}
         footer={null}
       >
+        <div style={{ padding: "10px 5px", fontFamily: "'Segoe UI', sans-serif" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+          <img
+            src={ChatAILogo}
+            alt="ChatGPT"
+            style={{ width: "20px", height: "20px" }}
+          />
+          <span style={{ fontWeight: 600, fontSize: "15px" }}>Chat AI</span>
+        </div>
+
         {suggestedPricing ? (
-          <p>{suggestedPricing}</p>
+          <div style={{ lineHeight: "1.6", color: "#333", fontSize: "15px" }}>
+            <p style={{ marginBottom: "12px" }}>
+              {suggestedPricing.split('\n').slice(0, 1)}
+            </p>
+
+            <ul style={{ paddingLeft: "20px", marginBottom: "12px" }}>
+              {suggestedPricing.match(/•.*?\$[\d.]+/g)?.map((line, i) => (
+                <li key={i}>{line.replace(/^•\s*/, "")}</li>
+              ))}
+            </ul>
+
+            <p>{suggestedPricing.split('\n').slice(-1)}</p>
+          </div>
         ) : (
           <div style={{ textAlign: "center" }}>
             <Spin />
             <p>Fetching suggestion...</p>
           </div>
         )}
+      </div>
+
       </Modal>
 
     </div>

@@ -28,6 +28,8 @@ const Dashboard: React.FC = () => {
   const [gymImages, setGymImages] = useState<any[]>([]);
   const [selectedGym, setSelectedGym] = useState<any>(null);
   const [averageRating, setAverageRating] = useState<number | null>(null);
+  const [isPriceModalVisible, setIsPriceModalVisible] = useState(false);
+  const [priceUpdateTargetGym, setPriceUpdateTargetGym] = useState<any>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -85,6 +87,16 @@ const Dashboard: React.FC = () => {
   };
 
   const handleOpenAddGymModal = () => setIsAddGymModalVisible(true);
+
+  const handleOpenPriceModal = (gym: any) => {
+    setPriceUpdateTargetGym(gym);
+    setIsPriceModalVisible(true);
+  };
+  
+  const handleClosePriceModal = () => {
+    setIsPriceModalVisible(false);
+    setPriceUpdateTargetGym(null);
+  };  
 
   const handleCloseAddGymModal = () => {
     setIsAddGymModalVisible(false);
@@ -255,12 +267,87 @@ const Dashboard: React.FC = () => {
                   prices={gym.prices}
                   onEdit={() => handleGymEdit(gym)}
                   onDelete={() => handleGymDelete(gym._id)}
+                  onUpdatePrice={() => handleOpenPriceModal(gym)}
                 />
               ))
             )}
           </div>
         </main>
       </div>
+      <Modal
+        open={isPriceModalVisible}
+        onCancel={handleClosePriceModal}
+        footer={null}
+        width={600}
+        closable
+      >
+        <div style={{ padding: "20px 30px" }}>
+          <h3 style={{ fontSize: "18px", fontWeight: 500, color: "#6c7080", marginBottom: "30px" }}>
+            Update prices
+          </h3>
+
+          {["1 day", "3 day", "5 day"].map((label, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", marginBottom: "25px" }}>
+              <label style={{ width: "120px", fontWeight: 500, color: "#6c7080" }}>
+                {label} plan
+              </label>
+              <Input
+                type="number"
+                placeholder="Price"
+                value={priceUpdateTargetGym?.prices?.[i] ?? ""}
+                onChange={(e) => {
+                  const updatedPrices = [...(priceUpdateTargetGym?.prices || [])];
+                  updatedPrices[i] = e.target.value;
+                  setPriceUpdateTargetGym({ ...priceUpdateTargetGym, prices: updatedPrices });
+                }}
+                style={{
+                  flex: 1,
+                  borderRadius: "12px",
+                  padding: "12px 16px",
+                  boxShadow: "0 4px 8px rgba(0,0,0,0.06)",
+                  border: "1px solid #eee",
+                  fontSize: "16px",
+                }}
+              />
+            </div>
+          ))}
+
+          <div style={{ textAlign: "center", marginTop: "40px" }}>
+            <Button
+              onClick={async () => {
+                try {
+                  const formData = new FormData();
+                  formData.append("prices", JSON.stringify(priceUpdateTargetGym.prices.map(Number)));
+                  await updateGymById(formData, priceUpdateTargetGym._id);
+
+                  setGyms((prev: any) =>
+                    prev.map((g: any) =>
+                      g._id === priceUpdateTargetGym._id ? { ...g, prices: priceUpdateTargetGym.prices } : g
+                    )
+                  );
+
+                  handleClosePriceModal();
+                } catch (err) {
+                  notification.error({ message: "Failed to update prices" });
+                }
+              }}
+              style={{
+                background: "#1d1f23",
+                color: "#fff",
+                border: "none",
+                borderRadius: "12px",
+                padding: "12px 50px",
+                fontWeight: 600,
+                fontSize: "18px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              }}
+            >
+              Save
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
 
       {/* Add Gym Modal */}
       <Modal
@@ -276,28 +363,6 @@ const Dashboard: React.FC = () => {
             <Input name="name" placeholder="Name" value={gymData.name} onChange={handleGymDataChange} className="modal-input" />
             <Input name="city" placeholder="City" value={gymData.city} onChange={handleGymDataChange} className="modal-input" />
             <Input.TextArea name="description" placeholder="Description" value={gymData.description} onChange={handleGymDataChange} className="modal-input" autoSize={{ minRows: 3, maxRows: 6 }} />
-            <p>Set Gym Prices (3 Pricing Programs):</p>
-            <Input
-              type="number"
-              placeholder="Price for 1 day"
-              value={gymData.prices[0]}
-              onChange={(e) => setGymData(prev => ({ ...prev, prices: [e.target.value, prev.prices[1], prev.prices[2]] }))}
-              style={{ marginBottom: '10px' }}
-            />
-            <Input
-              type="number"
-              placeholder="Price for 3 days"
-              value={gymData.prices[1]}
-              onChange={(e) => setGymData(prev => ({ ...prev, prices: [prev.prices[0], e.target.value, prev.prices[2]] }))}
-              style={{ marginBottom: '10px' }}
-            />
-            <Input
-              type="number"
-              placeholder="Price for 5 days"
-              value={gymData.prices[2]}
-              onChange={(e) => setGymData(prev => ({ ...prev, prices: [prev.prices[0], prev.prices[1], e.target.value] }))}
-              style={{ marginBottom: '10px' }}
-            />
           </div>
 
           {/* Right Side - Image Upload */}
@@ -343,28 +408,6 @@ const Dashboard: React.FC = () => {
             <Input name="name" placeholder="Name" value={gymData.name} onChange={handleGymDataChange} className="modal-input" />
             <Input name="city" placeholder="City" value={gymData.city} onChange={handleGymDataChange} className="modal-input" />
             <Input.TextArea name="description" placeholder="Description" value={gymData.description} onChange={handleGymDataChange} className="modal-input" autoSize={{ minRows: 3, maxRows: 6 }} />
-            <p>Set Gym Prices (3 Pricing Programs):</p>
-            <Input
-              type="number"
-              placeholder="Price for 1 day"
-              value={gymData.prices[0]}
-              onChange={(e) => setGymData(prev => ({ ...prev, prices: [e.target.value, prev.prices[1], prev.prices[2]] }))}
-              style={{ marginBottom: '10px' }}
-            />
-            <Input
-              type="number"
-              placeholder="Price for 3 days"
-              value={gymData.prices[1]}
-              onChange={(e) => setGymData(prev => ({ ...prev, prices: [prev.prices[0], e.target.value, prev.prices[2]] }))}
-              style={{ marginBottom: '10px' }}
-            />
-            <Input
-              type="number"
-              placeholder="Price for 5 days"
-              value={gymData.prices[2]}
-              onChange={(e) => setGymData(prev => ({ ...prev, prices: [prev.prices[0], prev.prices[1], e.target.value] }))}
-              style={{ marginBottom: '10px' }}
-            />
           </div>
 
           {/* Right Side - Image Upload */}
