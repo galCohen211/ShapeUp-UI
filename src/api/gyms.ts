@@ -35,6 +35,7 @@ export const getGyms = async () => {
             ) / reviews.length;
           gym.rating = avgRating.toFixed(1);
           gym.reviewsCount = reviews.length;
+          gym.reviews = reviews;
         } else {
           gym.rating = "No ratings yet";
           gym.reviewsCount = 0;
@@ -45,7 +46,7 @@ export const getGyms = async () => {
         gym.reviewsCount = 0;
       }
     }
-
+    
     return gyms;
   } catch (error: any) {
     notification.error({

@@ -12,6 +12,7 @@ interface GymCardProps {
   gymName: string;
   city: string;
   rating: string;
+  prices: number[];
   reviewsCount: number;
   images: string[];
   isFavorite: boolean;
@@ -19,6 +20,7 @@ interface GymCardProps {
   onToggleFavorite: () => void;
   onReviewAdded: (gymId: string) => void;
   onReviewsClick?: () => void;
+  onClick?: () => void;
   ownerId?: string;
 }
 
@@ -35,6 +37,7 @@ const GymCard: React.FC<GymCardProps> = ({
   gymName,
   city,
   rating,
+  prices,
   reviewsCount,
   images,
   isFavorite,
@@ -42,6 +45,7 @@ const GymCard: React.FC<GymCardProps> = ({
   onToggleFavorite,
   onReviewAdded,
   onReviewsClick,
+  onClick,
   ownerId
 }) => {
   const [reviews, setReviews] = useState([] as any[]);
@@ -170,7 +174,7 @@ const GymCard: React.FC<GymCardProps> = ({
     }
   };
   return (
-    <div className="gym-card">
+    <div className="gym-card" onClick={onClick} style={{ cursor: "pointer" }}>
       <div className="gym-header">
         <h3>{gymName}</h3>
         {isFavorite ? (
@@ -189,11 +193,17 @@ const GymCard: React.FC<GymCardProps> = ({
         )
       </p>
 
-      <Button className="add-review-btn" type="primary" size="small" onClick={() => setIsReviewFormOpen(true)}>
+      <Button className="add-review-btn" type="primary" size="small" onClick={(e) => {
+        e.stopPropagation();
+        setIsReviewFormOpen(true);
+      }}>
         Add Review
       </Button>
 
-      <Button className="chat-btn" type="default" size="small" onClick={openChatModal}>
+      <Button className="chat-btn" type="default" size="small" onClick={(e) => {
+        e.stopPropagation();
+        openChatModal();
+      }}>
         Chat with Owner
       </Button>
 

@@ -28,6 +28,8 @@ const GymsList: React.FC = () => {
   const [selectedGymReviews, setSelectedGymReviews] = useState<any[]>([]);
   const [modalPage, setModalPage] = useState(1);
   const [reviewsPage, setReviewsPage] = useState(1);
+  const [isGymDetailsModalVisible, setGymDetailsModalVisible] = useState(false);
+  const [selectedGym, setSelectedGym] = useState<any>(null);
   const gymsPerPage = 6;
   const reviewsPerPage = 5;
 
@@ -54,6 +56,15 @@ const GymsList: React.FC = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    const handleCloseModal = () => setGymDetailsModalVisible(false);
+    window.addEventListener("closeGymDetailsModal", handleCloseModal);
+  
+    return () => {
+      window.removeEventListener("closeGymDetailsModal", handleCloseModal);
+    };
+  }, []);
+  
   if (loading) return <Spin size="large" className="loading-spinner" />;
   if (error)
     return <Alert message="Error" description={error} type="error" showIcon />;
@@ -61,6 +72,12 @@ const GymsList: React.FC = () => {
   const indexOfLastGym = currentPage * gymsPerPage;
   const indexOfFirstGym = indexOfLastGym - gymsPerPage;
   const currentGyms = filteredGyms.slice(indexOfFirstGym, indexOfLastGym);
+
+  const openGymDetailsModal = (gym: any) => {
+    console.log("Opening modal for gym:", gym);
+    setSelectedGym(gym);
+    setGymDetailsModalVisible(true);
+  };  
 
   const toggleFavorite = async (gymId: string) => {
     if (!user) return;
@@ -204,6 +221,7 @@ const GymsList: React.FC = () => {
               gymId={gym._id}
               gymName={gym.name}
               city={gym.city}
+              prices={gym.prices || []}
               rating={gym.reviewsCount > 0 ? gym.rating : "No reviews yet"}
               reviewsCount={gym.reviewsCount || 0}
               images={gym.pictures || ["/default-gym.jpg"]}
@@ -212,6 +230,7 @@ const GymsList: React.FC = () => {
               onToggleFavorite={() => toggleFavorite(gym._id)}
               onReviewAdded={handleReviewAdded}
               onReviewsClick={() => openReviewsModal(gym.reviews)}
+              onClick={() => openGymDetailsModal(gym)}
               ownerId={gym.owner}
             />
           ))}
@@ -340,6 +359,67 @@ const GymsList: React.FC = () => {
           className="modal-pagination"
         />
       </Modal>
+      <Modal
+        open={isGymDetailsModalVisible}
+        onCancel={() => setGymDetailsModalVisible(false)}
+        footer={null}
+        width={320}
+        centered
+        className="gym-details-modal"
+      >
+        {selectedGym && (
+          <div>
+            <h2 className="gym-title">{selectedGym.name}</h2>
+            <img
+              src={selectedGym.pictures?.[0] || "/default-gym.jpg"}
+              alt="Gym"
+              className="gym-image"
+            />
+
+            <div className="gym-info">
+              <div>
+                <p>Location: {selectedGym.city}</p>
+                <p>Rating: {selectedGym.rating} ({selectedGym.reviewsCount} reviews)</p>
+                <p>Pricing:</p>
+                <p>1 day: {selectedGym?.prices?.[0] ?? "N/A"}$</p>
+                <p>3 days: {selectedGym?.prices?.[1] ?? "N/A"}$</p>
+                <p>5 days: {selectedGym?.prices?.[2] ?? "N/A"}$</p>
+              </div>
+              <div>
+                <p>Description:</p>
+                <p>{selectedGym?.description ?? "No description available"}</p>
+              </div>
+            </div>
+
+            <div className="review-box">
+              {selectedGym?.reviews?.length ? (
+                (() => {
+                  const userReview = selectedGym.reviews.find(
+                    (r: any) => r.user?._id === userProfile?._id
+                  );
+
+                  return userReview ? (
+                    <>
+                      <Rate disabled defaultValue={userReview.rating} />
+                      <p style={{ marginTop: 8 }}>{userReview.content}</p>
+                    </>
+                  ) : (
+                    <p>You haven't reviewed this gym yet.</p>
+                  );
+                })()
+              ) : (
+                <p>No reviews yet</p>
+              )}
+            </div>
+
+
+
+            <Button className="choose-btn">Choose a plan</Button>
+          </div>
+        )}
+      </Modal>
+
+
     </div>
   );
 };
