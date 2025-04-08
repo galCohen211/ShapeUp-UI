@@ -16,7 +16,7 @@ export const getGyms = async () => {
 
     const gyms = response.data.gyms;
 
-    for (let gym of gyms) {
+    for (const gym of gyms) {
       try {
         const reviewResponse = await axiosInstance.get(
           `${REVIEWS_ROUTE}/gym/${gym._id}`,

@@ -118,7 +118,7 @@ const Dashboard: React.FC = () => {
 
   const handleCloseAddGymModal = () => {
     setIsAddGymModalVisible(false);
-    setGymData({ name: "", city: "", description: "", prices: ["", "", ""] });
+    setGymData({ name: "", city: "", description: "", prices: [0, 0, 0] });
     setGymImages([]);
   };
 
@@ -137,7 +137,7 @@ const Dashboard: React.FC = () => {
   const handleCloseEditGymModal = () => {
     setIsEditGymModalVisible(false);
     setSelectedGym(null);
-    setGymData({ name: "", city: "", description: "", prices: ["", "", ""] });
+    setGymData({ name: "", city: "", description: "", prices: [0, 0, 0] });
     setGymImages([]);
   };
 
@@ -150,7 +150,7 @@ const Dashboard: React.FC = () => {
   const handleSaveGym = async () => {
     const formData = new FormData();
 
-    if (gymData.prices.some((price) => price === "" || isNaN(Number(price)))) {
+    if (gymData.prices.some((price) => price === 0 || isNaN(Number(price)))) {
       notification.warning({
         message: "Invalid Prices",
         description: "Please fill in all price levels with valid numbers.",
@@ -187,7 +187,7 @@ const Dashboard: React.FC = () => {
   const handleUpdateGym = async () => {
     const formData = new FormData();
 
-    if (gymData.prices.some((price) => price === "" || isNaN(Number(price)))) {
+    if (gymData.prices.some((price) => price === 0 || isNaN(Number(price)))) {
       notification.warning({
         message: "Invalid Prices",
         description: "Please fill in all price levels with valid numbers.",
