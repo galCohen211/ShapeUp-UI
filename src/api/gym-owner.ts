@@ -127,3 +127,18 @@ export const deleteGymById = async (gymId: string) => {
     throw error;
   }
 };
+
+export const getPurchasedUsersForGym = async (gymId: string) => {
+  try {
+    const response = await axiosInstance.get(`${GYMS_ROUTE}/${gymId}/purchased-users`, { withCredentials: true });
+    return response.data.users;
+  } catch (error: any) {
+    notification.error({
+      message: "Fetching Gym Trainees Failed",
+      description:
+        error.response?.data?.message || "Something went wrong. Please try again.",
+      placement: "top",
+    });
+    throw error;
+  }
+};

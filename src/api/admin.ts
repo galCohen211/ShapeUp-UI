@@ -79,3 +79,37 @@ export const getGymOwnersStatus = async (
     throw error;
   }
 };
+
+export const getRevenueByCity = async () => {
+  try {
+    const response = await axiosInstance.get(`${ADMIN_ROUTE}/revenue-by-city`, {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: any) {
+    notification.error({
+      message: "Failed to fetch city revenue",
+      description:
+        error.response?.data?.message ||
+        "Something went wrong. Please try again.",
+      placement: "top",
+    });
+    throw error;
+  }
+};
+
+export const getRevenueByDate = async () => {
+  try {
+    const response = await axiosInstance.get(`${ADMIN_ROUTE}/revenue-by-date`, {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: any) {
+    notification.error({
+      message: "Failed to fetch revenue by date",
+      description: error.response?.data?.message || "Something went wrong.",
+      placement: "top",
+    });
+    throw error;
+  }
+};

@@ -125,7 +125,7 @@ const Dashboard: React.FC = () => {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize the first letter of each word
         .join(" "));
   
-      const uniqueCities = Array.from(new Set(cities));
+      const uniqueCities = Array.from(new Set(cities)) as string[];
       setAllCities(uniqueCities);
     } catch (err) {
       console.error("Failed to load cities:", err);
@@ -347,6 +347,7 @@ const Dashboard: React.FC = () => {
               gyms?.map((gym: any) => (
                 <GymBox
                   key={gym._id + gym.name}
+                  gymId={gym._id}
                   gymName={gym.name}
                   city={gym.city}
                   ownerId={gym.owner}
