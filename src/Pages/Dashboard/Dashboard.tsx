@@ -54,6 +54,7 @@ const socket: Socket = io(CHAT_SERVER_URL, {
 const Dashboard: React.FC = () => {
   const { userProfile } = useUserProfile();
   const [gyms, setGyms] = useState<any | null>(null);
+  const [gymsWithUnread, setGymsWithUnread] = useState<Record<string, boolean>>({});
   const [loadingGyms, setLoadingGyms] = useState(true);
   const [gymsError, setGymsError] = useState(null);
   const [isAddGymModalVisible, setIsAddGymModalVisible] = useState(false);
@@ -115,6 +116,35 @@ const Dashboard: React.FC = () => {
         if (userProfile?.id) {
           const gyms = await getGymsByOwner(userProfile.id);
           setGyms(gyms);
+          // Check unread messages per gym
+          gyms.forEach((gym: any) => {
+            socket.emit(
+              "get_gym_chats",
+              userProfile?.id,
+              gym.name,
+              (chatUsers: any[]) => {
+                let hasUnread = false;
+
+                chatUsers.forEach((user) => {
+                  socket.emit(
+                    "get_unread_count",
+                    userProfile?.id,
+                    gym._id,
+                    gym.name,
+                    (count: number) => {
+                      if (count > 0) {
+                        hasUnread = true;
+                        setGymsWithUnread((prev) => ({ ...prev, [gym._id]: true }));
+                      }
+                    }
+                  );
+                });
+                if (!hasUnread) {
+                  setGymsWithUnread((prev) => ({ ...prev, [gym._id]: false }));
+                }
+              }
+            );
+          });
           let totalRating = 0;
           let totalReviews = 0;
 
@@ -396,6 +426,7 @@ const Dashboard: React.FC = () => {
                   description={gym.description}
                   city={gym.city}
                   onDelete={() => handleGymDelete(gym._id)}
+                  hasUnread={gymsWithUnread[gym._id] === true}
                 />
               ))
             )}

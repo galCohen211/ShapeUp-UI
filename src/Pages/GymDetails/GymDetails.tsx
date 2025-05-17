@@ -87,6 +87,8 @@ const Dashboard: React.FC = () => {
   const [isPriceModalVisible, setIsPriceModalVisible] = useState(false);
   const [isSuggestModalVisible, setSuggestModalVisible] = useState(false);
   const [suggestedPricing, setSuggestedPricing] = useState<string | null>(null);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+
 
   const [purchasedUsers, setPurchasedUsers] = useState<any[]>([]);
   const [isTraineesModalVisible, setTraineesModalVisible] = useState(false);
@@ -185,30 +187,35 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     const handleIncomingMessage = (message: any) => {
-      if (!selectedUser || !message) return;
-      if (
-        message.sender !== selectedUser.userId &&
-        message.sender !== gymData?.owner
-      ) {
-        return;
+      if (!message) return;
+
+      const isMessageRelevant =
+        message.sender === selectedUser?.userId || message.sender === gymData?.owner;
+
+      if (isMessageRelevant && selectedUser) {
+        // Show message in chat
+        message.timestamp = message.timestamp || Date.now();
+        setMessages((prevMessages) => {
+          const exists = prevMessages.some(
+            (msg) => msg.timestamp === message.timestamp
+          );
+          return exists ? prevMessages : [...prevMessages, message];
+        });
+
+        setTimeout(() => {
+          const chatContainer = document.querySelector(".chat-messages-container");
+          if (chatContainer) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+          }
+        }, 100);
+      } else {
+        // Increment unread for other users
+        const senderId = message.sender;
+        setUnreadCounts((prev) => ({
+          ...prev,
+          [senderId]: (prev[senderId] || 0) + 1,
+        }));
       }
-
-      message.timestamp = message.timestamp || Date.now();
-
-      setMessages((prevMessages) => {
-        const exists = prevMessages.some(
-          (msg) => msg.timestamp === message.timestamp
-        );
-        return exists ? prevMessages : [...prevMessages, message];
-      });
-      setTimeout(() => {
-        const chatContainer = document.querySelector(
-          ".chat-messages-container"
-        );
-        if (chatContainer) {
-          chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-      }, 100);
     };
 
     socket.on("message", handleIncomingMessage);
@@ -404,27 +411,35 @@ const Dashboard: React.FC = () => {
   };
 
   const fetchChatUsers = () => {
-    socket.emit(
-      "get_gym_chats",
-      gymData?.owner,
-      gymData?.name,
-      (chatData: any) => {
-        if (chatData) {
-          const uniqueUsers = Array.from(
-            new Map(chatData.map((user: any) => [user.userId, user])).values()
+    socket.emit("get_gym_chats", gymData?.owner, gymData?.name, (chatData: any) => {
+      if (chatData) {
+        const uniqueUsers = Array.from(
+          new Map(chatData.map((user: any) => [user.userId, user])).values()
+        );
+
+        setChatUsers(uniqueUsers.map((user: any) => ({
+          userId: user.userId,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        })));
+
+        // Fetch unread count for each user
+        uniqueUsers.forEach((user: any) => {
+          socket.emit(
+            "get_unread_count",
+            gymData?.owner,
+            gymData?._id,
+            gymData?.name,
+            (count: number) => {
+              setUnreadCounts(prev => ({ ...prev, [user.userId]: count }));
+            }
           );
-          setChatUsers(
-            uniqueUsers.map((user: any) => ({
-              userId: user.userId,
-              firstName: user.firstName,
-              lastName: user.lastName,
-            }))
-          );
-        } else {
-          notification.error({ message: "Failed to load chat users." });
-        }
+        });
+
+      } else {
+        notification.error({ message: "Failed to load chat users." });
       }
-    );
+    });
   };
 
   const selectUser = (user: {
@@ -434,6 +449,14 @@ const Dashboard: React.FC = () => {
   }) => {
     setSelectedUser(user);
     fetchChatHistory(user.userId);
+
+    socket.emit("mark_as_read", gymData?.owner, user.userId, gymData?.name);
+
+    setUnreadCounts((prev) => {
+      const updated = { ...prev };
+      delete updated[user.userId];
+      return updated;
+    });
   };
 
   const fetchChatHistory = (userId: string) => {
@@ -455,6 +478,15 @@ const Dashboard: React.FC = () => {
             timestamp: msg.timestamp || Date.now(),
           }))
         );
+        setTimeout(() => {
+          requestAnimationFrame(() => {
+            const container = document.querySelector(".chat-messages-container");
+            if (container) {
+              container.scrollTop = container.scrollHeight;
+            }
+          });
+        }, 50);
+
       }
     );
   };
@@ -466,19 +498,45 @@ const Dashboard: React.FC = () => {
     fetchChatUsers();
 
     socket.emit("add_user", gymData?.owner);
+
+    setTimeout(() => {
+      requestAnimationFrame(() => {
+        const container = document.querySelector(".chat-messages-container");
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
+      });
+    }, 50);
   };
 
+
   const sendMessage = () => {
-    if (!newMessage.trim() || !selectedUser) return;
+    if (!newMessage.trim() || !selectedUser || !gymData?.owner) return;
+
+    const outgoingMessage = {
+      sender: gymData.owner,
+      text: newMessage,
+      timestamp: Date.now(),
+    };
+
+    setMessages((prev) => [...prev, outgoingMessage]);
 
     socket.emit(
       "communicate",
-      gymData?.owner,
+      gymData.owner,
       selectedUser.userId,
-      gymData?.name,
+      gymData.name,
       newMessage
     );
+
     setNewMessage("");
+
+    setTimeout(() => {
+      const chatContainer = document.querySelector(".chat-messages-container");
+      if (chatContainer) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+    }, 100);
   };
 
   const fetchPurchasedUsers = async () => {
@@ -809,9 +867,29 @@ const Dashboard: React.FC = () => {
               renderItem={(user) => (
                 <List.Item
                   onClick={() => selectUser(user)}
-                  style={{ cursor: "pointer" }}
+                  style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
                 >
-                  {user.firstName} {user.lastName}
+                  <span>{user.firstName} {user.lastName}</span>
+
+                  {unreadCounts[user.userId] > 0 && (
+                    <span
+                      style={{
+                        backgroundColor: "#f5222d",
+                        color: "#fff",
+                        borderRadius: "50%",
+                        minWidth: "20px",
+                        height: "20px",
+                        padding: "0 6px",
+                        fontSize: "12px",
+                        fontWeight: "bold",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {unreadCounts[user.userId]}
+                    </span>
+                  )}
                 </List.Item>
               )}
               locale={{ emptyText: "No Active Chats" }}
@@ -836,11 +914,13 @@ const Dashboard: React.FC = () => {
                       : "owner-message"
                       }`}
                   >
-                    {msg.text}
+                    <div style={{ marginBottom: 4 }}>{msg.text}</div>
+                    <div style={{ fontSize: 10, color: "#888", textAlign: "right" }}>
+                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
                   </div>
                 ))}
               </div>
-
               {/* Chat Input Section */}
               <div className="chat-input-container">
                 <Input.TextArea

@@ -11,6 +11,7 @@ interface GymBoxProps {
   description: string;
   images: string[];
   onDelete: () => void;
+  hasUnread?: boolean;
 }
 
 const GymBox: React.FC<GymBoxProps> = ({
@@ -20,6 +21,7 @@ const GymBox: React.FC<GymBoxProps> = ({
   description,
   images,
   onDelete,
+  hasUnread,
 }) => {
   const navigate = useNavigate();
 
@@ -63,6 +65,24 @@ const GymBox: React.FC<GymBoxProps> = ({
             ? description.slice(0, 117) + "..."
             : description}
         </p>
+
+        {hasUnread && (
+          <div
+          style={{
+            backgroundColor: '#fff3f3',
+            color: '#a8071a',
+            padding: '4px 8px',
+            borderRadius: '6px',
+            fontWeight: 500,
+            fontSize: '11px',
+            marginTop: '8px',
+            display: 'inline-block',
+            border: '1px solid #ffa39e',
+          }}
+          >
+            You have unread chats, please check it
+          </div>
+        )}
       </div>
     </div>
   );
